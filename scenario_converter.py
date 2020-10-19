@@ -189,13 +189,8 @@ def vehicle_actors(waypoints, waypoints_num, speed):
 			f.write('end = ' + pose + '\n')
 			f.write('diff = end - start\n')
 			f.write('angle = math.degrees(math.atan2(diff.x,diff.z)) \n')
-			# f.write('if angle > 0 : angle = angle - 180 \n')
 			f.write('hit = sim.raycast(' + pose + ', lgsvl.Vector(0,-1,0), layer_mask)\n')
-			# pose = '(' + str(waypoints[0][i]) + ', ' + str(waypoints[1][i]) + ', ' + str(waypoints[2][i]) + ')'
 			f.write('waypoints.append(lgsvl.DriveWaypoint(' + pose + ' + up * hit.point + 1.08,  ' + str(speed[i]) + ', lgsvl.Vector(0, angle, 0), 0)),\n')
-			# f.write('waypoints.append(lgsvl.DriveWaypoint(' + pose + ', ' + str(speed[i]) + ', lgsvl.Vector(0, 0, 0), 0)),\n')
-			# f.write('print("hit.point, up = ", hit.point, up)\n')
-			# f.write('print("waypoint = ",' + pose + ' + up * hit.point)\n')
 		f.write('npc.follow(waypoints, loop=True)\n')
 		f.write('print("")\n')
 	
@@ -219,7 +214,6 @@ def judge_ClassID():
 			if extracted_information[i][3] > 2:
 				x, y = make_curve.make_curve2(extracted_information[i][2][0], extracted_information[i][2][1])
 				step = 10
-				print(x,y)
 				waypoints_num = len(x)
 
 				# waypoints_num = int(waypoints_num/step)
@@ -253,10 +247,7 @@ def judge_ClassID():
 				clothoid_speed = extracted_information[i][4]
 
 
-			# print(x, y)
-			# print(len(clothoid_waypoints))
-			# print(len(x))
-			# print(len(y))
+
 
 
 
@@ -337,7 +328,6 @@ path = './output/' + filename[1] + '.py'
 
 
 
-#次はここから　乗用車を表示できるようにする経路については後で考える
 
 # copying the essential settings from the template.py
 path_sample = './template.py'
