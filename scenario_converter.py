@@ -2,50 +2,9 @@
 
 import sys
 import make_curve
+import numpy
 
 
-
-
-# "filename" means the MATLAB file's name i.e. "test.m"
-filename = sys.argv
-
-path = './' + filename[1]
-
-flag = 0
-non_ego_actors = []
-non_ego_actors_num = 0
-
-# finding the string "non-ego actors" in the MATLAB file and appending the lines after the string to "non_ego_actors" variable
-with open(path, "r") as f:
-	for line in f:
-		if 'non-ego actors' in line:
-			flag = 1
-		if flag == 1:
-			non_ego_actors.append(line)
-
-# the "non_ego_actors" variable includes the lines as follow
-# % Add the non-ego actors
-# car1 = vehicle(scenario, ...
-#     'ClassID', 1, ...
-#     'Position', [37.8 49 0]);
-# waypoints = [37.8 49 0;
-#     35.5 24.2 0;
-#     42.7 -6.4 0;
-#     36.9 -40.5 0];
-# speed = 30;
-# trajectory(car1, waypoints, speed);
-
-# pedestrian = actor(scenario, ...
-#     'ClassID', 4, ...
-#     'Length', 0.24, ...
-#     'Width', 0.45, ...
-#     'Height', 1.7, ...
-#     'Position', [17.2 13.8 0], ...
-#     'RCSPattern', [-8 -8;-8 -8]);
-# waypoints = [17.2 13.8 0;
-#     17.6 -6.7 0];
-# speed = 1.5;
-# trajectory(pedestrian, waypoints, speed);
 
 
 def extract_actor_information(actors_information):
@@ -171,7 +130,7 @@ def pedestrian_actors(pedestrian,waypoints, waypoints_num):
 
 def vehicle_actors(waypoints, waypoints_num, speed):
 	init_pose = 'spawns[0].position + ' + str(waypoints[0][0]) + ' * forward + ' + str(waypoints[1][0]) + ' * right'
-
+	print("pes",speed)
 
 	with open(path, mode = 'a') as f:
 		f.write('state = lgsvl.AgentState()\n')
@@ -190,7 +149,8 @@ def vehicle_actors(waypoints, waypoints_num, speed):
 			f.write('diff = end - start\n')
 			f.write('angle = math.degrees(math.atan2(diff.x,diff.z)) \n')
 			f.write('hit = sim.raycast(' + pose + ', lgsvl.Vector(0,-1,0), layer_mask)\n')
-			f.write('waypoints.append(lgsvl.DriveWaypoint(' + pose + ' + up * hit.point + 1.08,  ' + str(speed[i]) + ', lgsvl.Vector(0, angle, 0), 0)),\n')
+			# f.write('waypoints.append(lgsvl.DriveWaypoint(' + pose + ' + up * (hit.point + lgsvl.Vector(0, 1.08, 0)), ' + str(speed[i]) + ', lgsvl.Vector(0, angle, 0), 0)),\n')
+			f.write('waypoints.append(lgsvl.DriveWaypoint(hit.point, ' + str(speed[i]) + ', lgsvl.Vector(0, angle, 0), 0)),\n')
 		f.write('npc.follow(waypoints, loop=True)\n')
 		f.write('print("")\n')
 	
@@ -227,18 +187,48 @@ def judge_ClassID():
 				if len(extracted_information[i][4]) >= 2: speed_flag = 1
 
 				count = 0
+				distance_index = []
+				for j in range(len(extracted_information[i][2][0])):
+					distance_array = []
+					for k in range(len(clothoid_waypoints[0])):
+						distance_x = clothoid_waypoints[0][k] - extracted_information[i][2][0][count]
+						distance_y = clothoid_waypoints[1][k] - extracted_information[i][2][1][count]
+						distance_array.append(numpy.linalg.norm(distance_x))
+					print(numpy.argmin(distance_array))
+					distance_index.append(numpy.argmin(distance_array))
+					count = count + 1
+
+
+				# for j in range(len(clothoid_waypoints[0])):
+				# 	for k in range(len(extracted_information[i][2][0])):
+				# 		distance_x = clothoid_waypoints[0][j]
+
+
+				count = 0
+				print(distance_index)
 				for j in range(waypoints_num):
-					
+					print(j)
 					if speed_flag == 0:
 						clothoid_speed.append(extracted_information[i][4][0])
 					else:
-												
-						if j % 10 == 9:
+						if j <= distance_index[count + 1]:
 							clothoid_speed.append(extracted_information[i][4][count])
-							count = count + 1
-
 						else:
+							count = count + 1
 							clothoid_speed.append(extracted_information[i][4][count])
+									
+						# if j % 10 == 9:
+						# 	clothoid_speed.append(extracted_information[i][4][count])
+						# 	count = count + 1
+
+						# else:
+						# 	# print(clothoid_speed)
+						# 	# print(count)
+						# 	# print(waypoints_num)
+						# 	# print(extracted_information[i][4][count])
+						# 	clothoid_speed.append(extracted_information[i][4][count])
+
+
 
 
 			else:
@@ -252,7 +242,60 @@ def judge_ClassID():
 
 
 			# vehicle_actors(extracted_information[i][2], extracted_information[i][3], extracted_information[i][4])
+			
+			if len(clothoid_speed) == 1:
+				clothoid_speed.append(clothoid_speed[0])
 			vehicle_actors(clothoid_waypoints, waypoints_num, clothoid_speed)
+
+
+
+
+
+
+
+
+
+
+# "filename" means the MATLAB file's name i.e. "test.m"
+filename = sys.argv
+
+path = './' + filename[1]
+
+flag = 0
+non_ego_actors = []
+non_ego_actors_num = 0
+
+# finding the string "non-ego actors" in the MATLAB file and appending the lines after the string to "non_ego_actors" variable
+with open(path, "r") as f:
+	for line in f:
+		if 'non-ego actors' in line:
+			flag = 1
+		if flag == 1:
+			non_ego_actors.append(line)
+
+#  the "non_ego_actors" variable includes the lines as follow
+# # % Add the non-ego actors
+# # car1 = vehicle(scenario, ...
+# #     'ClassID', 1, ...
+# #     'Position', [37.8 49 0]);
+# # waypoints = [37.8 49 0;
+# #     35.5 24.2 0;
+# #     42.7 -6.4 0;
+# #     36.9 -40.5 0];
+# # speed = 30;
+# # trajectory(car1, waypoints, speed);
+# # 
+# # pedestrian = actor(scenario, ...
+# #     'ClassID', 4, ...
+# #     'Length', 0.24, ...
+# #     'Width', 0.45, ...
+# #     'Height', 1.7, ...
+# #     'Position', [17.2 13.8 0], ...
+# #     'RCSPattern', [-8 -8;-8 -8]);
+# # waypoints = [17.2 13.8 0;
+# #     17.6 -6.7 0];
+# # speed = 1.5;
+# # trajectory(pedestrian, waypoints, speed);
 
 
 
@@ -273,10 +316,16 @@ def judge_ClassID():
 # the ClassID, Position, waypoints, the number of waypoints, and speed
 # from the "actors_information" variable.
 
+
+
 X = 0
 Y = 1
 Z = 2
 CLASSID = 0
+POSITION = 1
+WAYPOINTS = 2
+NUM_WAYPOINTS = 3
+SPEED = 4
 
 actors_information = []
 extracted_information = []
