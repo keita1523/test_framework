@@ -18,4 +18,13 @@ The scenarios are converted to the suite formats for LGSVL simulator by this fra
 - Python 3.5
 - MATLAB R2020b
 
-## Research Papers for Citation
+## Getting Started
+
+1. Installation
+	1. LGSVL simulator
+	2. Python API for LGSVL simulator
+	3. MATLAB/Simulink
+2. Clone this framework and Run
+
+## How to use
+
