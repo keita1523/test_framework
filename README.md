@@ -32,15 +32,15 @@ The scenarios are converted to the suite formats for LGSVL simulator by this fra
 
 	To clone,
 
-	```git clone https://github.com/keita1523/test_framework.git```
+		git clone https://github.com/keita1523/test_framework.git
 
 	To run python API, execute the following command in the PythonAPI directory:
 
-		```pip3 install --user -e .```
+		pip3 install --user -e .
 
 	Execute the following command, and then a python file is generated in the output directory:
 
-		```python scenario_converter.py BorregasAve.m```
+		python scenario_converter.py BorregasAve.m
 
 ## How to use
 
