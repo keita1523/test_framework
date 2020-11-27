@@ -12,9 +12,9 @@ def spline(x,y,point,deg):
 def make_curve2(x, y):
 
 	if len(x) <= 5:
-		a3,b3 = spline(x,y,1000,len(x)-1)
+		a3,b3 = spline(x,y,100,len(x)-1)
 	elif len(x) > 5:
-		a3,b3 = spline(x,y,1000,5)
+		a3,b3 = spline(x,y,100,5)
 
 
 	return a3, b3

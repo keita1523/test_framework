@@ -13,11 +13,11 @@ import math
 import cmath
 
 sim = lgsvl.Simulator(os.environ.get("SIMULATOR_HOST", "127.0.0.1"), 8181)
-if sim.current_scene == "BorregasAve":
+if sim.current_scene == "SanFrancisco":
   sim.reset()
 
 else:
-	sim.load("BorregasAve")
+	sim.load("SanFrancisco")
 
 spawns = sim.get_spawn()
 
@@ -32,8 +32,8 @@ a.connect_bridge("localhost", 9090)
 
 print("Waiting for connection...")
 
-while not a.bridge_connected:
-  time.sleep(1)
+# while not a.bridge_connected:
+#   time.sleep(1)
 
 print("Bridge connected:", a.bridge_connected)
 
@@ -51,6 +51,7 @@ names = ["Bob", "EntrepreneurFemale", "Howard", "Johny", "Pamela", "Presley", "R
 
 #waypoint_checker
 
+print(spawns[0])
 
 # for i in range(20*6):
 for i in range(6):

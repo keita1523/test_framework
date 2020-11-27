@@ -42,6 +42,5 @@ The scenarios are converted to the suite formats for LGSVL simulator by this fra
 
 		python scenario_converter.py BorregasAve.m
 
-## How to use
 
 
