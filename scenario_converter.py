@@ -232,8 +232,8 @@ def output_vehicle(waypoints, waypoints_num, speed, path):
 			f.write('hit = sim.raycast(' + pose + ', lgsvl.Vector(0,-1,0), layer_mask)\n')
 			f.write('waypoints.append(lgsvl.DriveWaypoint(hit.point,  ' + str(speed[i]) + ', lgsvl.Vector(0, angle, 0), 0)),\n')
 			# f.write('waypoints.append(lgsvl.DriveWaypoint(' + pose + ' + up * hit.point + 1.08,  ' + str(speed[i]) + ', lgsvl.Vector(0, angle, 0), 0)),\n')
-		# f.write('npc.follow(waypoints, loop=True)\n')
-	# 	f.write('print("")\n')
+		f.write('npc.follow(waypoints, loop=True)\n')
+		f.write('print("")\n')
 	print("vehicle")
 
 def output_pedestrian():
@@ -332,7 +332,11 @@ def output_actor_information(actor_information_array, output_path):
 			output_pedestrian()
 			print("papa")
 
-
+def reverse_y_coordinate(actor_information_array):
+	for i in range(len(actor_information_array)):
+		for j in range(len(actor_information_array[i][Waypoint][Y])):
+			actor_information_array[i][Waypoint][Y][j] = actor_information_array[i][Waypoint][Y][j] * -1
+	return actor_information_array
 
 def main():
 	non_ego_actors = extract_non_ego_actors_line()
@@ -340,6 +344,7 @@ def main():
 	actor_information_array, original_waypoints = extract_actor_information(actor_array, actors_num)
 	actor_information_array = vehicle_curve(actor_information_array)
 	actor_information_array = vehicle_speed(actor_information_array, original_waypoints)
+	actor_information_array = reverse_y_coordinate(actor_information_array)
 	output_path, template_path = make_path()
 	
 	output_template_for_setting_simulator(template_path, output_path, True)
