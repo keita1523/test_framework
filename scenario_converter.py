@@ -148,6 +148,18 @@ def extract_speed(line):
 		speed = float(line.split("=")[1][:-2])
 
 	return speed
+def extract_yaw(line):
+	split_comma = line.split(",")[1]
+	yaw = float(split_comma)
+	return yaw
+
+def add_position_to_waypoints(position):
+	waypoints = []
+	waypoints.append([position[0]])
+	waypoints.append([position[1]])
+	waypoints.append([position[2]])
+
+	return waypoints
 
 def extract_actor_information(actor_array, num):
 	actor_information_array = []
@@ -156,6 +168,9 @@ def extract_actor_information(actor_array, num):
 	for i in range(num):
 		actor_information = []
 		count = 0
+		flag_waypoints = False
+		flag_speed = False
+		flag_yaw = False
 		for line in actor_array[i]:
 			if "trajectory" not in line:
 				if "ClassID" in line:
@@ -164,16 +179,32 @@ def extract_actor_information(actor_array, num):
 					position = extract_position(line)
 				if "waypoints" in line:
 					waypoints = extract_waypoints(actor_array[i], count)
+					flag_waypoints = True
 				if "speed" in line:
 					speed = extract_speed(line)
+					flag_speed = True
+				if "Yaw" in line:
+					yaw = extract_yaw(line)
+					# the positive direction is opposite
+					yaw = -yaw
+					flag_yaw = True
 
 			count = count + 1
+
+		if flag_waypoints == False:
+			waypoints = add_position_to_waypoints(position)
+		if flag_speed == False:
+			speed = 0.0
+		if flag_yaw == False:
+			yaw = False
+
 
 		actor_information.append(class_id)
 		actor_information.append(position)
 		actor_information.append(waypoints)
 		actor_information.append(len(waypoints[X]))
 		actor_information.append(speed)
+		actor_information.append(yaw)
 		actor_information_array.append(actor_information)
 		waypoints_array.append(waypoints)
 
@@ -209,34 +240,78 @@ def vehicle_curve(actor_information_array):
 	return actor_information_array
 
 
-def output_vehicle(waypoints, waypoints_num, speed, path):
-	init_pose = 'spawns[0].position + ' + str(waypoints[0][0]) + ' * forward + ' + str(waypoints[1][0]) + ' * right'
+def output_vehicle(waypoints, waypoints_num, speed, path, yaw, count_vehicle):
+	init_pose = 'spawns[0].position + ' + str(waypoints[X][0]) + ' * forward + ' + str(waypoints[Y][0]) + ' * right'
+	print(waypoints_num)
 
 
 	with open(path, mode = 'a') as f:
 		f.write('state = lgsvl.AgentState()\n')
 		f.write('layer_mask = 0\n')
 		f.write('layer_mask |= 1 << 0\n')
-		f.write('state.transform.position = ' + init_pose + '\n')
-		f.write('state.transform.rotation = lgsvl.Vector(0, 0, 0)\n')
-		f.write('npc = sim.add_agent("Sedan", lgsvl.AgentType.NPC, state)\n')
-		f.write('waypoints = []\n')
-		for i in range(waypoints_num):
-			index = (waypoints_num + i - 1) % waypoints_num
-			pose = 'spawns[0].position + ' + str(waypoints[0][i]) + ' * forward + ' + str(waypoints[1][i]) + ' * right'
-			pre_pose = 'spawns[0].position + ' + str(waypoints[0][index]) + ' * forward + ' + str(waypoints[1][index])  +  ' * right'
-			f.write('start = ' + pre_pose + '\n')
-			f.write('end = ' + pose + '\n')
-			f.write('diff = end - start\n')
-			f.write('angle = math.degrees(math.atan2(diff.x,diff.z)) \n')
+		f.write('hit = sim.raycast(' + init_pose + ', lgsvl.Vector(0,-1,0), layer_mask)\n')
+		f.write('state.transform.position = hit.point\n')
+
+		if yaw == False:
+			if waypoints_num > 1:
+				pose = 'spawns[0].position + ' + str(waypoints[X][0]) + ' * forward + ' + str(waypoints[Y][0]) + ' * right'
+				next_pose = 'spawns[0].position + ' + str(waypoints[X][1]) + ' * forward + ' + str(waypoints[Y][1])  +  ' * right'
+				f.write('start = ' + pose + '\n')
+				f.write('end = ' + next_pose + '\n')
+				f.write('diff = end - start\n')
+				f.write('angle = math.degrees(math.atan2(diff.x,diff.z)) \n')
+				f.write('state.transform.rotation = lgsvl.Vector(0, angle, 0)\n')
+			else:
+				f.write('state.transform.rotation = spawns[0].rotation\n')
+
+		else:
+			f.write('state.transform.rotation = spawns[0].rotation + lgsvl.Vector(0,' + str(yaw) + ', 0)\n')
+		f.write('npc' + str(count_vehicle) + ' = sim.add_agent("Sedan", lgsvl.AgentType.NPC, state)\n')
+		f.write('waypoints' + str(count_vehicle) + ' = []\n')
+
+		if waypoints_num == 1:
+			pose = 'spawns[0].position + ' + str(waypoints[X][0]) + ' * forward + ' + str(waypoints[Y][0]) + ' * right'
 			f.write('hit = sim.raycast(' + pose + ', lgsvl.Vector(0,-1,0), layer_mask)\n')
-			f.write('waypoints.append(lgsvl.DriveWaypoint(hit.point,  ' + str(speed[i]) + ', lgsvl.Vector(0, angle, 0), 0)),\n')
-			# f.write('waypoints.append(lgsvl.DriveWaypoint(' + pose + ' + up * hit.point + 1.08,  ' + str(speed[i]) + ', lgsvl.Vector(0, angle, 0), 0)),\n')
-		f.write('npc.follow(waypoints, loop=True)\n')
-		f.write('print("")\n')
+			f.write('waypoints' + str(count_vehicle) + '.append(lgsvl.DriveWaypoint(hit.point,  ' + str(speed[0]) + ', lgsvl.Vector(0, ' + str(yaw) + ', 0), 0))\n')
+		else:
+			for i in range(waypoints_num - 1):
+				next_i = i + 1
+				pose = 'spawns[0].position + ' + str(waypoints[X][i]) + ' * forward + ' + str(waypoints[Y][i]) + ' * right'
+				next_pose = 'spawns[0].position + ' + str(waypoints[X][next_i]) + ' * forward + ' + str(waypoints[Y][next_i])  +  ' * right'
+				f.write('start = ' + pose + '\n')
+				f.write('end = ' + next_pose + '\n')
+				f.write('diff = end - start\n')
+				f.write('angle = math.degrees(math.atan2(diff.x,diff.z)) \n')
+				f.write('hit = sim.raycast(' + pose + ', lgsvl.Vector(0,-1,0), layer_mask)\n')
+				f.write('waypoints' + str(count_vehicle) + '.append(lgsvl.DriveWaypoint(hit.point, ' + str(speed[i]) + ', lgsvl.Vector(0, angle, 0), 0))\n')
+			f.write('hit = sim.raycast(' + next_pose + ', lgsvl.Vector(0,-1,0), layer_mask)\n')
+			f.write('waypoints' + str(count_vehicle) + '.append(lgsvl.DriveWaypoint(hit.point,  ' + str(speed[waypoints_num - 1]) + ', lgsvl.Vector(0, angle, 0), 0))\n')
+
+		f.write('npc' + str(count_vehicle) + '.follow(waypoints' + str(count_vehicle) + ', loop=True)\n')
+		f.write('\n\n')
 	print("vehicle")
 
-def output_pedestrian():
+
+def output_pedestrian(waypoints, waypoints_num, path, count_pedestrian):
+	Loop = False
+	with open(path, mode = 'a') as f:
+		f.write('wp' + str(count_pedestrian) + ' = []\n')
+		for i in range(waypoints_num):
+			f.write('wp' + str(count_pedestrian) + '.append(lgsvl.WalkWaypoint(spawns[0].position + ' + str(waypoints[X][i]) + ' * forward + ' + str(waypoints[Y][i]) + ' * right, 0))\n')
+		f.write('state = lgsvl.AgentState()\n')
+		f.write('state.transform = copy.deepcopy(spawns[0])\n')
+		f.write('state.transform.position = wp' + str(count_pedestrian) + '[0].position\n')
+		f.write('p' + str(count_pedestrian) + ' = sim.add_agent("Bob", lgsvl.AgentType.PEDESTRIAN, state)\n')
+		if Loop == False:
+			f.write('p' + str(count_pedestrian) + '.follow(wp' + str(count_pedestrian) + ', False)\n')
+		else:
+			if waypoints_num == 1:
+				f.write('p' + str(count_pedestrian) + '.follow(wp' + str(count_pedestrian) + ', False)\n')
+			else:
+				f.write('p' + str(count_pedestrian) + '.follow(wp' + str(count_pedestrian) + ', True)\n')
+		f.write('\n\n')
+
+
 	print("pedestiran")
 
 def make_path():
@@ -262,8 +337,6 @@ def nearest_index(waypoint, original_waypoint):
 	index = []
 	count = 0
 	pre_dis = 10**309
-	# print(pre_dis)
-	print(type(original_waypoint[0][0]))
 	for i in range(len(waypoint[X]) - 1):
 		point_from = np.array([original_waypoint[X][count], original_waypoint[Y][count]])
 		point_to = np.array([waypoint[X][i], waypoint[Y][i]])
@@ -281,7 +354,6 @@ def nearest_index(waypoint, original_waypoint):
 
 def make_speed_list(speed, index):
 	new_speed = []
-	print(index)
 	count = 0
 	for i in range(len(index)):
 		while count <= index[i]:
@@ -292,9 +364,10 @@ def make_speed_list(speed, index):
 def vehicle_speed(actor_information_array, original_waypoints):
 	for i in range(len(actor_information_array)):
 		if actor_information_array[i][ClassID] == 1:
-			# print(type(actor_information_array[i][Speed]))
 			if type(actor_information_array[i][Speed]) == float:
 				actor_information_array[i][Speed] = add_speed_parameter(actor_information_array[i][Speed], actor_information_array[i][Waypoint_Num])
+			elif len(actor_information_array[i][Speed]) == 2:
+				continue;
 			else:
 				index = nearest_index(actor_information_array[i][Waypoint], original_waypoints[i])
 				actor_information_array[i][Speed] = make_speed_list(actor_information_array[i][Speed], index)
@@ -324,19 +397,25 @@ def output_template_for_setting_simulator(template_path, output_path, start_or_e
 						f2.write(line)
 
 def output_actor_information(actor_information_array, output_path):
+	count_vehicle = 0
+	count_pedestrian = 0
 	for i in range(len(actor_information_array)):
 		if actor_information_array[i][ClassID] == 1:
-			output_vehicle(actor_information_array[i][Waypoint], actor_information_array[i][Waypoint_Num], actor_information_array[i][Speed], output_path)
-			print("pepe")
+			output_vehicle(actor_information_array[i][Waypoint], actor_information_array[i][Waypoint_Num], actor_information_array[i][Speed], output_path, actor_information_array[i][Angle], count_vehicle)
+			count_vehicle += 1
 		elif actor_information_array[i][ClassID] == 4:
-			output_pedestrian()
-			print("papa")
+			output_pedestrian(actor_information_array[i][Waypoint], actor_information_array[i][Waypoint_Num], output_path, count_pedestrian)
+			count_pedestrian += 1
 
 def reverse_y_coordinate(actor_information_array):
 	for i in range(len(actor_information_array)):
 		for j in range(len(actor_information_array[i][Waypoint][Y])):
 			actor_information_array[i][Waypoint][Y][j] = actor_information_array[i][Waypoint][Y][j] * -1
 	return actor_information_array
+
+
+
+
 
 def main():
 	non_ego_actors = extract_non_ego_actors_line()
