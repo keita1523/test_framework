@@ -11,13 +11,14 @@ import random
 import time
 import math
 import cmath
+import copy
 
 sim = lgsvl.Simulator(os.environ.get("SIMULATOR_HOST", "127.0.0.1"), 8181)
-if sim.current_scene == "SanFrancisco":
+if sim.current_scene == "BorregasAve":
   sim.reset()
 
 else:
-	sim.load("SanFrancisco")
+	sim.load("BorregasAve")
 
 spawns = sim.get_spawn()
 
