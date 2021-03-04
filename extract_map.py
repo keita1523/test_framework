@@ -407,10 +407,8 @@ def transform_coordinate(point, origin):
 		point[i][X] = transform_x
 		point[i][Y] = transform_y
 
-		judge_distance.append(True if distance(np.zeros(2), np.array([transform_x, transform_y])) < max_dis else False)
-		# print(np.array(transform_x, transform_y), distance(np.zeros(2), np.array(transform_x, transform_y)), judge_distance[i])
-		# popo = np.array([transform_x, transform_y])
-		# print(popo[0], popo[1])
+		judge_distance.append(True if abs(point[i][X]) <= 300 and abs(point[i][Y]) <= 300 else False)
+		# judge_distance.append(True if distance(np.zeros(2), np.array([transform_x, transform_y])) < max_dis else False)
 
 	return point, judge_distance
 
@@ -489,25 +487,25 @@ def main():
 
 	origin_point = [-201.879058837891, 10.2880001068115, 217.720001220703]
 
-	point = file_path("/home/saitama1/autoware-data/SanFrancisco/data/map/vector_map/point.csv")
+	point = file_path("/home/azumi-lab/autoware-data/SanFrancisco/data/map/vector_map/point.csv")
 	arrange = [PID]
 	point = index_arrange(point, arrange)
 	point, judge_distance = transform_coordinate(point, origin_point)
 	# print(judge_distance)
 	print("point")
 	
-	line = file_path("/home/saitama1/autoware-data/SanFrancisco/data/map/vector_map/line.csv")
+	line = file_path("/home/azumi-lab/autoware-data/SanFrancisco/data/map/vector_map/line.csv")
 	arrange = [LID, BPID, FPID, BLID, FLID]
 	line = index_arrange(line, arrange)
 	print("line")
 
-	dtlane = file_path("/home/saitama1/autoware-data/SanFrancisco/data/map/vector_map/dtlane.csv")
+	dtlane = file_path("/home/azumi-lab/autoware-data/SanFrancisco/data/map/vector_map/dtlane.csv")
 	arrange = [DID, D_PID]
 	dtlane = index_arrange(dtlane, arrange)
 	print("dtlane")
 	
 
-	lane = file_path("/home/saitama1/autoware-data/SanFrancisco/data/map/vector_map/lane.csv")
+	lane = file_path("/home/azumi-lab/autoware-data/SanFrancisco/data/map/vector_map/lane.csv")
 	arrange = [LnID, Ln_DID, Ln_BLID, Ln_FLID]
 	lane = index_arrange(lane, arrange)
 	print("lane")
@@ -518,22 +516,14 @@ def main():
 	# print("connection_line")
 
 	connection_line = for_debag_input_file("connection_line")
-	print(len(connection_line[0]))
 
 	connection_line = connection_line_considering_judge_distance(connection_line, D_PID, judge_distance)
-	print(len(connection_line[0]))
-	# for i in range(len(connection_line)):
-	# 	for j in range(len(connection_line[i])):
-
-	# 		print(point[connection_line[i][j]][4], point[connection_line[i][j]][5], judge_distance[connection_line[i][j]])
 
 
 	x, y, index = extract_coordinate_and_display2(dtlane, DID, D_PID, point, connection_line, judge_distance)
-	print(x)
 	x, y = adapt_for_matlab_environment(x, y, index)
-	# x, y, index = smart_waypoint(x, y, index)
 
-	check_same_waypoint(x, y, index)
+	# check_same_waypoint(x, y, index)
 
 	print("extract x y")
 

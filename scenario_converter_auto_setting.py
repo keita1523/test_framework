@@ -30,7 +30,8 @@ def extract_non_ego_actors_line():
 	# finding the string "non-ego actors" in the MATLAB file and appending the lines after the string to "non_ego_actors" variable
 	with open(path, "r") as f:
 		for line in f:
-			if 'non-ego actors' in line:
+			# if 'non-ego actors' in line:
+			if 'Add the actors' in line:
 				flag = 1
 			if flag == 1:
 				non_ego_actors.append(line)
@@ -331,7 +332,7 @@ def make_path():
 	filename[1] = filename[1][:-2]
 	output_path = "./output/" + filename[1] + ".py"
 
-	template_path = "./template.py"
+	template_path = "./template_trigger.py"
 	return output_path, template_path
 
 def add_speed_parameter(speed, num):
@@ -386,41 +387,9 @@ def vehicle_speed(actor_information_array, original_waypoints):
 	return actor_information_array
 
 
-def output_template_for_setting_simulator(template_path, output_path, start_or_end):
-	if start_or_end == True:
-		with open(output_path, mode = 'w'):
-			pass
-
-		with open(template_path, 'r') as f:
-			with open(output_path, mode = 'a') as f2:
-				for line in f:
-					if "waypoint_checker" in line:
-						break
-					else:
-						f2.write(line)
-	elif start_or_end == False:
-		flag = 0
-		with open(template_path, 'r') as f:
-			with open(output_path, mode = 'a') as f2:
-				for line in f:
-					if "waypoint_checked" in line:
-						flag = 1
-					elif flag == 1:
-						f2.write(line)
-
-def output_actor_information(actor_information_array, output_path):
-	count_vehicle = 0
-	count_pedestrian = 0
-	for i in range(len(actor_information_array)):
-		if actor_information_array[i][ClassID] == 1:
-			output_vehicle(actor_information_array[i][Waypoint], actor_information_array[i][Waypoint_Num], actor_information_array[i][Speed], output_path, actor_information_array[i][Angle], count_vehicle)
-			count_vehicle += 1
-		elif actor_information_array[i][ClassID] == 4:
-			output_pedestrian(actor_information_array[i][Waypoint], actor_information_array[i][Waypoint_Num], output_path, count_pedestrian)
-			count_pedestrian += 1
-
 def reverse_y_coordinate(actor_information_array):
 	for i in range(len(actor_information_array)):
+		actor_information_array[i][Position][Y] = actor_information_array[i][Position][Y] * -1
 		for j in range(len(actor_information_array[i][Waypoint][Y])):
 			actor_information_array[i][Waypoint][Y][j] = actor_information_array[i][Waypoint][Y][j] * -1
 	return actor_information_array
@@ -435,21 +404,160 @@ def trigger_check(actor_information_array):
 
 	return actor_information_array
 
+def serch_index(actor_information_array):
+	for i in range(len(actor_information_array)):
+		if actor_information_array[i][ClassID] == 6:
+			actor_six = actor_information_array[i]
+		if actor_information_array[i][ClassID] == 7:
+			actor_seven = actor_information_array[i]
+	return actor_six, actor_seven
+
+def rerative_distance(actor_six, actor_seven):
+	point_from = np.array([actor_six[Position][X], actor_six[Position][Y]])
+	point_to = np.array([actor_seven[Position][X], actor_seven[Position][Y]])
+	d1 = distance(point_from, point_to) / 1000 # km
+	return d1
+
+def npc_position(actor_six, actor_seven, d1):
+	v6 = actor_six[Speed]
+	v7 = actor_seven[Speed]
+	t = d1 / v6
+	d2 = v7 * t * 1000 # m
+
+	return d2
+
+def calculate_sin_cos(yaw):
+	rad = np.deg2rad(yaw)
+	sin = np.sin(rad)
+	cos = np.cos(rad)
+	return sin, cos
+
+def calculate_waypoint(position, yaw, d2):
+	sin, cos = calculate_sin_cos(yaw)
+	new_x = position[X] + d2 * cos
+	new_y = position[Y] + d2 * sin
+	print("\n", new_x, new_y, "\n")
+	new_position = [new_x, new_y, position[Z]]
+	return new_position
+
+
+def calculate_npc_waypoint(actor_seven, d2):
+	# calculate_yaw(actor_seven[Yaw])
+	waypoint = []
+	yaw = actor_seven[Angle]
+	reverse_yaw = actor_seven[Angle] - 180
+	waypoint.append(calculate_waypoint(actor_seven[Position], reverse_yaw, d2))
+	waypoint.append(actor_seven[Position])
+	waypoint.append(calculate_waypoint(actor_seven[Position], yaw, d2))
+	return waypoint
+
+def set_new_npc(actor_information_array, waypoint, npc_speed, npc_yaw):
+	name = "trigger_npc"
+	class_id = 1
+	print("waypoint", waypoint)
+	position = waypoint[0]
+	waypoints = waypoint
+	waypoints_num = len(waypoints)
+	speed = npc_speed
+	yaw = npc_yaw
+	trigger = False
+	actor_information = [name, class_id, position, waypoints, waypoints_num, npc_speed, npc_yaw ]
+	actor_information_array.append(actor_information)
+	return actor_information_array
+
+	
+def straight_change(actor_information_array):
+	print("straight_change")
+	actor_six, actor_seven = serch_index(actor_information_array)
+	print("acotr", actor_information_array)
+	d1 = rerative_distance(actor_six, actor_seven)
+	d2 = npc_position(actor_six, actor_seven, d1)
+	waypoint = calculate_npc_waypoint(actor_seven, d2)
+	actor_information_array = set_new_npc(actor_information_array, waypoint, actor_seven[Speed], actor_seven[Angle])
+	return actor_information_array
+
+
+
+def change_npc_position(actor_information_array):
+	Straight = True
+	if Straight == True:
+		actor_information_array = straight_change(actor_information_array)
+		return actor_information_array
+
+def name_to_speed(actor_information_array):
+	for i in range(len(actor_information_array)):
+		if actor_information_array[i][ClassID] == 6 or actor_information_array[i][ClassID] == 7:
+			actor_information_array[i][Speed] = float(actor_information_array[i][Name])
+	return actor_information_array
+
+def output_checkpoint_in_tempalte(output_path, template_path, number):
+	flag = 0
+	if number == 1:
+		with open(output_path, mode = "w"):
+			pass
+
+	checkpoint_name = "checkpoint" + str(number)
+	with open(template_path, "r") as template_file:
+		with open(output_path, mode = "a") as output_file:
+			for line in template_file:
+				if checkpoint_name + "_start" in line:
+					flag = 1
+				if  flag == 1:
+					output_file.write(line)
+				if checkpoint_name + "_end" in line:
+					flag = 0
+
+
+def output_trigger_and_npc_position(output_path, trigger_position, npc_information):
+
+
+	with open(output_path, mode = "a") as output_file:
+		output_file.write("    trigger_position = spawns[0].position + " + str(trigger_position[X]) + " * forward + " + str(trigger_position[Y]) + " * right\n")
+		output_file.write("    set_spawns = True\n")
+		output_file.write("    state = lgsvl.AgentState()\n")
+		output_file.write("    state.transform.position = spawns[0].position + " + str(npc_information[Position][X]) + " * forward + " + str(npc_information[Position][Y]) + " * right\n")
+		output_file.write("    state.transform.rotation = spawns[0].rotation + lgsvl.Vector(0, " + str(npc_information[Angle]) + ", 0)\n")
+		output_file.write('    npc = sim.add_agent("Sedan", lgsvl.AgentType.NPC, state)\n')
+
+def output_npc_information(output_path, npc_information):
+	with open(output_path, mode = "a") as output_file:
+		output_file.write("    speed = " + str(npc_information[Speed]) + "\n")
+		output_file.write("    angle = spawns[0].rotation + lgsvl.Vector(0, " + str(npc_information[Angle]) + ", 0)\n")
+		output_file.write("    hit = sim.raycast(spawns[0].position + " + str(npc_information[Position][X]) + " * forward + " + str(npc_information[Position][Y]) + " * right, lgsvl.Vector(0,-1,0), layer_mask)\n")
+
+def output_npc_waypoints(output_path, npc_information):
+	with open(output_path, mode = "a") as output_file:
+		output_file.write("            wp2 = []\n")
+		for i in range(len(npc_information[Waypoint])):
+			output_file.write("            hit = sim.raycast(spawns[0].position + " + str(npc_information[Waypoint][i][X]) + " * forward + " + str(npc_information[Waypoint][i][Y]) + " * right, lgsvl.Vector(0,-1,0), layer_mask)\n")
+			output_file.write("            wp2.append(lgsvl.DriveWaypoint(hit.point, speed, angle, 0, 0))\n")
+
+
+def output_actor_information(output_path, template_path, actor_information_array):
+	actor_six, actor_seven = serch_index(actor_information_array)
+
+	output_checkpoint_in_tempalte(output_path, template_path, 1)
+	output_trigger_and_npc_position(output_path, actor_six[Position], actor_information_array[-1])
+	output_checkpoint_in_tempalte(output_path, template_path, 2)
+	output_npc_information(output_path, actor_information_array[-1])
+	output_checkpoint_in_tempalte(output_path, template_path, 3)
+	output_npc_waypoints(output_path, actor_information_array[-1])
+	output_checkpoint_in_tempalte(output_path, template_path, 4)
 
 def main():
 	non_ego_actors = extract_non_ego_actors_line()
 	actor_array, actors_num = separate_each_actor(non_ego_actors)
 	actor_information_array, original_waypoints = extract_actor_information(actor_array, actors_num)
-	actor_information_array = vehicle_curve(actor_information_array)
-	actor_information_array = vehicle_speed(actor_information_array, original_waypoints)
 	actor_information_array = reverse_y_coordinate(actor_information_array)
 	actor_information_array = trigger_check(actor_information_array)
-	print(actor_information_array)
+	actor_information_array = name_to_speed(actor_information_array)
+	actor_information_array = change_npc_position(actor_information_array)
 	output_path, template_path = make_path()
+	output_actor_information(output_path, template_path, actor_information_array)
 	
-	output_template_for_setting_simulator(template_path, output_path, True)
-	output_actor_information(actor_information_array, output_path)
-	output_template_for_setting_simulator(template_path, output_path, False)
+	# output_template_for_setting_simulator(template_path, output_path, True)
+	# output_actor_information(actor_information_array, output_path)
+	# output_template_for_setting_simulator(template_path, output_path, False)
 	
 
 

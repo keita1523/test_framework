@@ -424,6 +424,7 @@ def main():
 	actor_information_array = vehicle_curve(actor_information_array)
 	actor_information_array = vehicle_speed(actor_information_array, original_waypoints)
 	actor_information_array = reverse_y_coordinate(actor_information_array)
+	print("actor inromation", actor_information_array)
 	output_path, template_path = make_path()
 	
 	output_template_for_setting_simulator(template_path, output_path, True)
