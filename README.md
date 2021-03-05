@@ -28,19 +28,41 @@ The scenarios are converted to the suite formats for LGSVL simulator by this fra
 
 	3. MATLAB/Simulink
 
-2. Clone this framework and Demonstrate
+2. Setup
 
 	To clone,
 
 		git clone https://github.com/keita1523/test_framework.git
+		pip3 install numpy
 
 	To run python API, execute the following command in the PythonAPI directory:
 
 		pip3 install --user -e .
 
-	Execute the following command, and then a python file is generated in the output directory:
 
-		python scenario_converter.py BorregasAve.m
+	In LGSVL simulator directory, you run a folloing command.
+	If you download binary version, the directory is lgsvlsimulator-linux64-xxxx-xx.
+	To launches LGSVL simulator
+	```
+		./simulator
+	```
+
+	Push "Open Browser..." and start simulation.
+	[Add maps, vehicles, and simulations](https://www.lgsvlsimulator.com/docs/maps-tab/#how-to-add-a-map)
+
+
+3. Demonstration
+	Launches two terminals A and B.
+	On the terminal A, change directory to LGSVL simulator directory.
+	```
+		./simulator
+	```
+
+	On terminal B, execute the following command, and then a python file is generated in the output directory:
+
+		python3 scenario_converter.py BorregasAve.m
+		cd output
+		python3 BorregasAve.py
 
 
 
